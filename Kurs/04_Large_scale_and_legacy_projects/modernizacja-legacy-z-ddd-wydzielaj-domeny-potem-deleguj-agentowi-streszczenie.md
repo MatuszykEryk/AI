@@ -1,20 +1,33 @@
 ## Od „refaktoruj kod" do „odkryj domenę"
 
-Refaktoryzacja (M4L4) odpowiada: _jak bezpiecznie zmienić kod?_ DDD odpowiada: _czy kod odpowiada biznesowi?_ Pomylenie pytań daje wiarygodny plan utrwalający bałagan nazw.
+Refaktoryzacja (M4L4) odpowiada: _jak bezpiecznie zmienić kod?_ DDD odpowiada: _czy kod odpowiada biznesowi?_ Pomylenie pytań daje wiarygodny plan utrwalający bałagan nazw — agent projektuje wokół nazw, które same w sobie są pomyłką.
 
-Lekcja nie jest kursem DDD — bierzemy tyle, ile potrzeba na etap post-MVP: **ubiquitous language**, **bounded contexts**, **niezmienniki**, **agregaty**, **Anti-Corruption Layer**. AI łączy klasykę modelowania z semantyką LLM — wywiad domenowy i Event Storming solo na poziomie „wystarczająco dobrym".
+Lekcja nie jest kursem DDD — bierzemy tyle, ile potrzeba na etap post-MVP: **ubiquitous language**, **bounded contexts**, **niezmienniki**, **agregaty**, **Anti-Corruption Layer**. Klasyczne wejście w DDD było drogie (wywiad z ekspertem, warsztaty, mapowanie). LLM zbija koszt do „wystarczająco dobrego": AI łączy klasykę modelowania z semantyką modelu — wywiad domenowy i Event Storming solo, po godzinach, na cudzym repozytorium.
+
+Cel lekcji: utrzymać rosnący projekt za tydzień, miesiąc, kwartał — przez **drugi duży cykl** post-MVP, w którym architekturę kształtuje domena, nie zgadywanie.
+
+## Najpierw język: dwa sposoby na ubiquitous language
+
+Zasada DDD: **granice językowe ujawniają granice kontekstów.** Tam, gdzie ten sam termin znaczy co innego, przebiega szew między obszarami.
+
+Przykład `3xAccount` w fintechu:
+1. Konto użytkownika — login, e-mail, profil, 2FA.
+2. Rachunek bankowy — IBAN, saldo, waluta.
+3. Konto księgowe — pozycja w planie kont.
+
+W kodzie `AccountService`, `AccountStatus`, `AccountClosed` — nie wiadomo, co zamykasz. Rozwiązanie: `UserProfile`, `BankAccount`, `LedgerAccount`.
+
+W 10xCards (przykład przez całą lekcję): PRD ma **„sesję generacji"** — byt z cyklem życia i finalizacją. W kodzie luźny identyfikator przy wierszach propozycji. Nazwy: `draft` / „propozycje" / `cards` / „kandydaci" — **jeden byt, cztery nazwy**. Precyzja języka ma znaczenie przy skalowaniu i koszcie tokenów.
 
 ### Tryb pierwszy: wywiad z ekspertem domenowym
 
-Zasada DDD: **granice językowe ujawniają granice kontekstów.** Przykład `3xAccount` (profil / rachunek bankowy / konto księgowe) → `UserProfile`, `BankAccount`, `LedgerAccount`.
+Wyjątek od reguły „agent, nie chatbot" — tu zwykła rozmowa z największym modelem wystarczy.
 
-W 10xCards: PRD ma „sesję generacji"; w kodzie luźny identyfikator; `draft` / „propozycje" / `cards` / „kandydaci" — jeden byt, cztery nazwy.
+**Ekspert domenowy** — rozumie reguły biznesu, procesy i wyjątki; nie musi programować (księgowa, lekarz, analityk SRS…).
 
-Do poznania języka: największy model z wiedzą o domenie. **Ekspert domenowy** — rozumie reguły biznesu, nie musi programować. Wyjątek od reguły „agent, nie chatbot" — tu zwykła rozmowa wystarczy.
+Symulowany wywiad: procesy biznesowe, algorytmy (Leitner vs SM-2 vs FSRS — trade-offy), terminologia (`Review` vs `Test`, `Due Card` vs `Pending`). Wynik → plik kontekstowy jako referencja w researchach i planach. Unikasz problemu `3xAccount`.
 
-Symulowany wywiad: pytania o procesy (SRS, algorytmy powtórek), terminologię (`Review` vs `Test`, `Due Card` vs `Pending`). Wynik → plik kontekstowy jako referencja.
-
-**agent-forum** — dwa modele (programista + ekspert), `summarizer` → brief domenowy w `threads/` i `summary.md`:
+**agent-forum** — dwa modele (programista + ekspert), opcjonalny `summarizer` → brief domenowy w `threads/` i `summary.md`:
 
 ```ts
 new Forum({
@@ -28,118 +41,246 @@ new Forum({
 });
 ```
 
+Uruchomienie: sklonuj repo, `OPENROUTER_API_KEY` w `.env`, `npm start`. Pytania zadaje drugi agent — dostajesz gotowy zapis zamiast kopiowania z czatu.
+
 ### Tryb drugi: dokument kontekstowy kontra realny kod
 
-Dla projektów z `prd`, `context/archive`, roadmapą — agent wyciąga język z dokumentów i **porównuje z kodem**. Prompt destylacji (produkt = MAPA domeny, nie kod):
+Dla projektów z `prd`, `context/archive`, roadmapą — agent wyciąga język z dokumentów i **porównuje z kodem**. Produkt = MAPA domeny, nie kod. Prompt destylacji:
 
 ```text
-Pracujesz jako specjalista Domain-Driven Design skupiony na destylacji domeny biznesowej z istniejących dokumentów źródłowych. Twoim produktem jest MAPA domeny, nie kod. Nie zakładaj z góry żadnych nazw bytów, agregatów, ścieżek ani numerów wymagań — masz je ODKRYĆ.
+Pracujesz jako specjalista Domain-Driven Design skupiony na destylacji domeny biznesowej z istniejących dokumentów źródłowych. Twoim produktem jest MAPA domeny, nie kod. Nie zakładaj z góry żadnych nazw bytów, agregatów, ścieżek ani numerów wymagań — masz je ODKRYĆ. Pracuj w trzech krokach: odkrycie → analiza → klasyfikacja.
 
 KROK 0 — Odkryj kontekst projektu.
-- Znajdź i przeczytaj prd.md, tech-stack.md, README (foundation/docs lub root). Jeśli brak — README + kod, odnotuj ograniczenie.
-- Ustal stack i gdzie żyje logika biznesowa.
+- Znajdź i przeczytaj dokumenty wizji/wymagań, jeśli istnieją: poszukaj prd.md, tech-stack.md, README (typowo w katalogu z dokumentami foundation/docs lub w korzeniu repo). Jeśli istnieje rozszerzona narracja/historia zmian — przeczytaj ją też jako materiał źródłowy.
+- Jeśli brak dokumentów wymagań — oprzyj się na README + kodzie i wyraźnie to odnotuj jako ograniczenie.
+- Ustal stack i strukturę repo: gdzie żyje logika biznesowa (warstwy: API/ serwis/domena/UI/persystencja), jakie są katalogi źródłowe.
 
 KROK 1 — Zbuduj Ubiquitous Language.
-- Pojęcia z dokumentów ORAZ kodu. NIE wymyślaj — cytuj źródło.
-- Dla każdego: definicja, cytat (plik:linia), kod (plik:linia) LUB "BRAK w kodzie".
+- Wyciągnij pojęcia domenowe z dokumentów ORAZ z kodu (nazwy encji, bytów, stanów, operacji, reguł). NIE wymyślaj — cytuj źródło.
+- Dla każdego pojęcia podaj: definicję, cytat źródłowy (plik:linia), oraz gdzie termin żyje w kodzie (plik:linia) LUB wyraźną adnotację "BRAK w kodzie".
 
-KROK 2 — Sklasyfikuj subdomeny: Core / Supporting / Generic — uzasadnij celami produktu.
+KROK 2 — Sklasyfikuj subdomeny: Core / Supporting / Generic.
+- Tabela: każde pojęcie/obszar przypisz do jednej kategorii i uzasadnij odwołaniem do celów produktu (success criteria / sekcja wizji / non-goals, jeśli istnieją). Rdzeń = to, co stanowi przewagę i sens produktu.
 
-KROK 3 — Kandydaci na agregaty i niezmienniki — reguła MUSI być prawdziwa; status egzekwowania w kodzie.
+KROK 3 — Wskaż kandydatów na agregaty i ich niezmienniki.
+- Dla każdego kandydata: jaka reguła biznesowa MUSI być zawsze prawdziwa (niezmiennik), z cytatem ze źródła, oraz status: czy kod ją egzekwuje, deklaruje, czy ignoruje.
 
-KROK 4 — Tabela rozjazdów MODEL vs KOD (dokument mówi X — kod robi Y — dowód).
+KROK 4 — Zbuduj listę rozjazdów MODEL vs KOD.
+- Tabela: dokument mówi X — kod robi Y — dowód (plik:linia). To najcenniejsza część: pokazuje gdzie wiedza domenowa istnieje, a kod jej nie odwzorowuje.
 
-KROK 5 — Ranking refaktoru; wskaż #1.
+KROK 5 — Ranking refaktoru.
+- Uszereguj kandydatów na agregaty wg wartości (jak rdzeniowy niezmiennik) i ryzyka (jak słabo jest dziś egzekwowany). Wskaż #1 do refaktoru i dlaczego.
 
-OGRANICZENIA: nie pisz kodu produkcyjnego; cytuj tylko zweryfikowane plik:linia.
-Zapisz do: context/domain/01-domain-distillation.md
+OGRANICZENIA:
+- Nie pisz kodu produkcyjnego. Cytuj wyłącznie ścieżki/linie, które realnie zweryfikowałeś.
+- Zapisz dokument do: context/domain/01-domain-distillation.md (z frontmatter: title, created, type: domain-distillation).
+- Na koniec zwróć podsumowanie 5–8 zdań: co zawiera artefakt i najważniejszy wniosek.
+
+Zapisz rezultat do context/domain/01-domain-distillation.md
 ```
 
-Na starcie projektu koszt błędnej nazwy niski — obszerny glosariusz przedwcześnie. DDD ma sens, gdy domena **boli** (post-MVP).
+Pragmatyczne DDD: na starcie koszt błędnej nazwy niski — obszerny glosariusz przedwcześnie. DDD ma sens, gdy domena **boli** (post-MVP, `3xAccount` wszędzie).
 
 ## Niezmienniki, czyli reguły, których pilnujesz
 
-**Niezmiennik** — reguła, która MUSI być prawdziwa (np. sesja finalizuje się dopiero, gdy każda propozycja rozstrzygnięta). W legacy reguła jest **wszędzie i nigdzie** — kawałki w UI, serwisie, kolejności handlerów; klient jako jedyny strażnik.
+**Niezmiennik** — reguła MUSI być prawdziwa niezależnie od tego, kto rusza system. To nie walidacja formularza — to sens produktu. W legacy reguła jest **wszędzie i nigdzie**: kawałki w UI, serwisie, kolejności handlerów; klient jako jedyny strażnik; błąd połykany zamiast zatrzymać operację.
 
-**Agregat** — jedyny strażnik niezmiennika; nielegalna operacja → nazwany błąd domenowy, nie cichy zapis.
+10xCards: niezmiennik sesji generacji — **finalizacja dopiero, gdy każda propozycja rozstrzygnięta** (zaakceptowana lub odrzucona). Brak `GenerationSession` = brak strażnika. UI liczy karty, endpoint ufa żądaniu, w bazie luźny identyfikator.
 
-Prompt planu refaktoru (produkt = PLAN, nie implementacja):
+**Agregat** — granica spójności; **jedyny** strażnik niezmiennika. Nielegalna operacja → nazwany błąd domenowy, nie cichy zapis.
+
+Prompt planu refaktoru (produkt = PLAN, nie implementacja; agent **odkrywa** niezmiennik #1 — nie zakładaj z góry):
 
 ```text
-Pracujesz jako specjalista Domain-Driven Design skupiony na identyfikacji i zabezpieczaniu domenowych niezmienników. Produkt to PLAN refaktoru, nie implementacja.
+Pracujesz jako specjalista Domain-Driven Design skupiony na identyfikacji i zabezpieczaniu domenowych niezmienników. Produkt to PLAN refaktoru, nie implementacja — nie modyfikuj kodu produkcyjnego. Nie zakładaj z góry, który niezmiennik jest rdzeniowy ani jak nazywają się byty — masz to ODKRYĆ i WYBRAĆ. Pracuj w krokach: odkrycie → identyfikacja → klasyfikacja → diagnoza → projekt.
 
-KROK 1 — IDENTYFIKUJ niezmienniki (dokumenty + kod, cytaty).
-KROK 2 — KLASYFIKUJ i wybierz #1 (rdzeniowość, rozsmarowanie, egzekwowanie).
-KROK 3 — DIAGNOZA (plik:linia we wszystkich warstwach).
-KROK 4 — PROJEKT agregatu-strażnika (preconditions, repozytorium, transakcja).
-KROK 5 — Before/after, plan faz, przypadki testowe.
+KROK 0 — Odkryj kontekst.
+- Przeczytaj dokumenty wymagań, jeśli istnieją (prd.md / tech-stack.md / README; szukaj w foundation/docs/root). Zwróć uwagę na sekcje "business logic", "success criteria", reguły i wymagania funkcjonalne.
+- Ustal stack i warstwy, w których żyje logika biznesowa (API / serwis / domena / UI / persystencja).
 
-Zapisz do: context/domain/02-invariant-aggregate-refactor.md
+KROK 1 — IDENTYFIKUJ niezmienniki biznesowe.
+- Zbuduj listę reguł, które w tej domenie MUSZĄ być zawsze prawdziwe (np. "X powstaje tylko z Y", "operacja Z jest atomowa", "dane D nigdy nie są persystowane", "przejście stanu A→B wymaga warunku C"). Wyciągaj z dokumentów ORAZ z kodu. Cytuj źródło.
+
+KROK 2 — KLASYFIKUJ i wybierz #1.
+- Dla każdego niezmiennika oceń trzy osie:
+  (a) jak rdzeniowy dla sensu produktu (odwołaj się do celów/wizji),
+  (b) jak bardzo rozsmarowany po warstwach (w ilu plikach/warstwach żyje),
+  (c) czy jest realnie EGZEKWOWANY, tylko deklarowany, czy naruszalny.
+- Wybierz niezmiennik, który jest jednocześnie najbardziej rdzeniowy I najsłabiej egzekwowany. Uzasadnij wybór.
+
+KROK 3 — DIAGNOZA wybranego niezmiennika.
+- Pokaż dokładnie, gdzie dziś żyje reguła (cytaty plik:linia we wszystkich warstwach). Wskaż: które warstwy jej nie egzekwują, gdzie jest egzekwowana niespójnie, gdzie klient (UI) jest jedynym strażnikiem, gdzie błąd jest "połykany" zamiast zatrzymywać operację.
+
+KROK 4 — PROJEKT agregatu-strażnika.
+- Zaprojektuj agregat (root) będący JEDYNYM miejscem egzekwowania niezmiennika.
+- Metody domenowe z preconditions; nielegalna operacja rzuca nazwany błąd domenowy (nie cicho aktualizuje stanu). Pokaż sygnatury + pseudokod.
+- Repozytorium ładujące/zapisujące agregat zamiast rozsianych zapytań; jeśli niezmiennik wymaga atomowości — pokaż, jak całość idzie w JEDNEJ transakcji.
+- Cienkie API/route: parse wejścia → metoda agregatu → mapowanie błędu domenowego na odpowiedź. Egzekucja przenosi się z klienta na serwer (jeśli dziś jest na kliencie).
+
+KROK 5 — Before/after, plan, testy.
+- Before/after dla każdego dzisiejszego miejsca reguły.
+- Plan faz refaktoru. Jeśli projekt ma dyscyplinę test-first / istniejący runner — zaznacz, które fazy idą test-first i wypisz przypadki testowe dla niezmiennika (legalne i nielegalne przejścia/operacje).
+- Lista nowych "load-bearing" nazw do zarejestrowania, jeśli projekt prowadzi rejestr kontraktów.
+
+OGRANICZENIA:
+- Fail-fast: nielegalna operacja zatrzymuje, nie loguje-i-jedzie dalej.
+- Cytuj tylko zweryfikowane plik:linia.
+- Zapisz dokument do: context/domain/02-invariant-aggregate-refactor.md (frontmatter: title, created, type: refactor-plan).
+- Zwróć podsumowanie 5–8 zdań na koniec.
+
+Zapisz rezultat do context/domain/02-invariant-aggregate-refactor.md
 ```
 
-Agent **odkrywa** niezmiennik #1 — nie zakładaj z góry. Efekt: reguła w kodzie, którego nie da się obejść; egzekucja na serwerze.
+Efekt: reguła w kodzie, którego nie da się obejść; egzekucja na serwerze; wiedza w jednym pliku, nie w czterech.
 
 ## Anti-Corruption Layer, czyli przeciwko szkodnikom
 
-**Przeciek** — typy biblioteki zewnętrznej (`ts-fsrs` `Card`) w DB, API, UI. Koszt: wymiana biblioteki = cały system; biblioteka serwerowa w bundlu klienta.
+**Przeciek** — typy biblioteki zewnętrznej rozłazą się po kodzie. Przykład `ts-fsrs`: `Card` ze `stability`, `difficulty`, `due` w DB, API, propsach Svelte; konwersja zduplikowana w trzech miejscach. Koszty: wymiana biblioteki = cały system; biblioteka serwerowa w bundlu klienta.
 
-**ACL** — cienka warstwa: domenowy value object + **wąski port** (interfejs domenowy) + **adapter** na bibliotekę. Reszta kodu zna tylko port.
+**ACL** — cienka warstwa na granicy: domenowy **value object** (jedyne miejsce wiedzy o kształcie zależności) + **wąski port** (interfejs domenowy) + **adapter** na bibliotekę. Reszta kodu zna tylko port.
 
 Prompt ACL:
 
 ```text
-Pracujesz jako specjalista DDD skupiony na przeciekających zależnościach. Produkt to PLAN refaktoru.
+Pracujesz jako specjalista Domain-Driven Design skupiony na identyfikacji przeciekających zależności i łamania granic warstw domeny. Produkt to PLAN refaktoru, nie implementacja — nie modyfikuj kodu produkcyjnego. Nie zakładaj z góry, która zależność przecieka ani jak nazywają się byty — masz to ODKRYĆ i WYBRAĆ. Kroki: odkrycie → identyfikacja → klasyfikacja → diagnoza → projekt.
 
-KROK 1 — IDENTYFIKUJ przecieki (ten sam pakiet w API+UI+serwisie, typy w DTO, duplikacja rekonstrukcji).
-KROK 2 — KLASYFIKUJ i wybierz #1 (warstwy dotknięte, koszt wymiany, rozjazd intencja-vs-kod z dokumentów).
+KROK 0 — Odkryj kontekst.
+- Przeczytaj dokumenty bazowe, jeśli istnieją (prd.md / tech-stack.md / README). Zwróć uwagę na deklaracje o wymienialności komponentów lub o tym, że jakiś byt jest celowo odseparowany "żeby dało się wymienić X".
+- Ustal stack, listę zależności zewnętrznych (manifest pakietów) i warstwy kodu.
+
+KROK 1 — IDENTYFIKUJ przeciekające zależności.
+- Znajdź zależności zewnętrzne, które przeciekają przez granice warstw. Sygnały: ten sam pakiet importowany w wielu warstwach (API + UI + serwis), zduplikowana rekonstrukcja obiektów/typów biblioteki w kilku miejscach, typy biblioteki w sygnaturach domenowych lub w kontraktach wire (DTO/response), wołanie tego samego SDK po obu stronach granicy klient/serwer.
+- Dla każdej: wylicz WSZYSTKIE pliki, które ją dziś "znają" (plik:linia).
+
+KROK 2 — KLASYFIKUJ i wybierz #1.
+- Oceń każdą oś: (a) liczba warstw/plików dotkniętych, (b) ryzyko/koszt wymiany biblioteki dziś, (c) czy dokumenty deklarują, że ma być wymienialna (rozjazd intencja-vs-kod jest mocnym sygnałem). Wybierz najgorszy przeciek. Uzasadnij.
+
 KROK 3 — DIAGNOZA.
-KROK 4 — PROJEKT ACL (value object, port, adapter).
-KROK 5 — Dowód izolacji + before/after.
-KROK 6 — Kryterium sukcesu: grep po nazwie pakietu zwraca wyłącznie pliki ACL/adaptera.
+- Pokaż duplikację (cytaty plik:linia) i przecieki przez granice — zwłaszcza groźne (np. biblioteka serwerowa wciągana do bundla klienta). Jeśli dokument deklaruje wymienialność — zacytuj to (plik:linia) i pokaż, że kod jej nie dotrzymuje.
 
-Zapisz do: context/domain/03-anti-corruption-layer.md
+KROK 4 — PROJEKT ACL.
+- Zaprojektuj domenowy value object/encję, która jest JEDYNYM miejscem wiedzy o kształcie zależności (mapowanie z/do persystencji, konwersja do/z typu biblioteki, operacje domenowe). Pokaż sygnatury + pseudokod.
+- Zdefiniuj WĄSKI port (interfejs domenowy) i adapter implementujący go przez konkretną bibliotekę. Reszta kodu zna tylko port.
+
+KROK 5 — Dowód izolacji + before/after.
+- Udowodnij listą, że wymiana biblioteki dotyka tylko adaptera, nie tabel/API/UI.
+- Before/after dla zduplikowanych miejsc; pokaż, że warstwa UI dostaje gotowe dane domenowe, nie surowy obiekt biblioteki.
+- Jeśli istnieją otwarte pytania zależne od kontraktu tej biblioteki — rozstrzygnij je w oparciu o jej dokumentację i wskaż, gdzie zakodować decyzję (w ACL, nie w warstwie API).
+
+KROK 6 — Weryfikacja i plan.
+- Kryterium sukcesu: grep po nazwie pakietu zwraca wyłącznie pliki w katalogu ACL/ adaptera. Wypisz, które pliki dziś znają zależność, a które po refaktorze już nie.
+- Plan faz zgodny z konwencją projektu.
+
+OGRANICZENIA:
+- Cytuj tylko zweryfikowane plik:linia. Nie pisz kodu produkcyjnego.
+- Zapisz dokument do: context/domain/03-anti-corruption-layer.md (frontmatter: title, created, type: refactor-plan).
+- Zwróć podsumowanie 5–8 zdań na koniec.
+
+Zapisz rezultat do context/domain/03-anti-corruption-layer.md
 ```
 
-Sprawdzalne kryterium sukcesu — nie „czy ładniej".
+Rozjazd intencja-vs-kod (dokument deklarował wymienialność) = najmocniejszy sygnał. Sukces = **sprawdzalne kryterium** grep, nie „czy ładniej".
 
 ## Interaktywne warsztaty DDD z event-storming-canvas
 
-Event Storming (Brandolini): zdarzenia, komendy, aktorzy, hotspoty na osi czasu. Klasyczny warsztat = wysoki koszt wejścia; agent jako moderator „wystarczająco dobry" przed zaproszeniem ludzi.
+Event Storming (Brandolini): pomarańczowe zdarzenia, niebieskie komendy, żółci aktorzy, czerwone hotspoty na osi czasu. Klasyczny warsztat = sala, ściana karteczek, ekspert, moderator — dzień pracy kilku osób. Agent **nie zastępuje** eksperta, ale daje „wystarczająco dobry" start solo.
 
-**event-storming-canvas** — `board.json` jako jedyne źródło prawdy; człowiek w przeglądarce, agent edytuje JSON; SSE na żywo. Fazy: `chaotic-exploration` → `timeline` → `hotspots` → `aggregates` — pasek narzędzi ograniczony do roli fazy.
+**event-storming-canvas** — `board.json` jako jedyne źródło prawdy; człowiek w przeglądarce, agent edytuje JSON; SSE na żywo. Gramatyka Brandoliniego + selektor faz ogranicza pasek narzędzi: `chaotic-exploration` → `timeline` → `hotspots` → `aggregates`.
 
 ```bash
 node server.js
 # http://localhost:4000
 ```
 
-`CLAUDE.md` / `AGENTS.md` w repo = protokół moderatora. Przykładowe prompty:
+`CLAUDE.md` / `AGENTS.md` w repo = protokół moderatora (respektuj fazę, nie nadpisuj karteczek użytkownika, zamieniaj niejasności w hotspoty). Przykładowe prompty:
 
 ```text
 Wyczyść tablicę i poprowadź warsztat Event Storming dla procesu asynchronicznej generacji fiszek w 10xCards. Zacznij od fazy chaotic-exploration i dorzuć 4–5 zdarzeń domenowych w czasie przeszłym.
 ```
 
 ```text
-Przejdź do fazy hotspots i zaznacz na czerwono miejsca, w których proces może się wysypać.
+Przejdź do fazy hotspots i zaznacz na czerwono miejsca, w których proces może się wysypać — błąd modelu, częściowo zaakceptowana sesja, timeout generacji.
 ```
 
-Sesje bez pamięci — zachowaj `board.json` ręcznie.
+Agent czyta `board.json` przed każdą akcją — buduje na twoim stanie. Sesje bez pamięci (brak DB) — zachowaj `board.json` ręcznie. Czerwone hotspoty = kandydaci na niezmienniki i granice kontekstów.
 
 ## Wsad do dalszej refaktoryzacji
 
-Cztery artefakty: `01-domain-distillation.md`, `02-invariant-aggregate-refactor.md`, `03-anti-corruption-layer.md`, `board.json`. To **wsad**, nie produkt końcowy — **drugi duży cykl** post-MVP: architektura z domeny, nie zgadywania.
+Cztery artefakty na dysku: `01-domain-distillation.md`, `02-invariant-aggregate-refactor.md`, `03-anti-corruption-layer.md`, `board.json`. To **wsad** (diagnozy, plany, pytania), nie produkt końcowy.
 
-Skille z dokumentami DDD jako wejściem:
+Skille z dokumentami DDD jako wejściem — te same co przy MVP, lepsze paliwo:
 
 ```text
 /10x-research @context/domain/01-domain-distillation.md
+  → zbadaj, jak głęboko subdomena Core jest dziś rozsmarowana po warstwach
+
 /10x-plan @context/domain/02-invariant-aggregate-refactor.md
+  → zamień plan refaktoru w konkretną zmianę z własnym change-id
+
 /10x-roadmap
+  → ułóż hotspoty z Event Stormingu w kolejność zmian wg wartości i ryzyka
 ```
 
-`/10x-plan` nagradza gotowy research — im więcej pracy DDD na wejściu, tym węższy plan. DDD **zasila** workflow z modułów 1–3, nie go zastępuje. Modernizacja legacy z AI = powtarzalny cykl: odkryj domenę → nazwij rozjazdy → zabezpiecz niezmienniki → ACL → te same skille co przy MVP.
+`/10x-plan` nagradza gotowy research — `02-invariant-aggregate-refactor.md` to research z fazami, before/after i testami. DDD **zasila** workflow z modułów 1–3, nie go zastępuje.
 
-Raport architektoniczny (10xArchitect) — prompt zbiera artefakty L2–L5 w `context/architect-report.md` (~2 strony). Struktura: opisane projekty; mapa (3–5 wniosków); analiza ficzera (overview + debt z ast-grep); plan refaktoryzacji (co, czego NIE, fazy); domena DDD (język, niezmiennik #1, ACL); **„Decyzje, które należą do mnie"** (3–5 zdań: co AI podpowiedziało, co rozstrzygnąłeś sam). Nie wymyślaj — `BRAK artefaktu` jeśli brakuje. Przeczytaj jak recenzent, nie autor.
+Wpinki w drugi cykl:
+- **`01`** — ranking refaktoru i rozjazdy `model-vs-kod` → `/10x-shape`, `/10x-roadmap`.
+- **`02`**, **`03`** — gotowe plany → `/10x-plan` jako wsad pod `change-id`.
+- **`board.json`** — hotspoty → potencjalne `change-id` na research.
+
+Modernizacja legacy z AI = **powtarzalny cykl**: odkryj domenę → nazwij rozjazdy → zabezpiecz niezmienniki → ACL → te same skille co przy MVP.
+
+### Ćwiczenia i raport architektoniczny (10xArchitect)
+
+Trzy prompty → trzy pliki w `context/domain/`. Opcjonalnie: `event-storming-canvas` od `chaotic-exploration` po `hotspots`.
+
+Ostatnia lekcja modułu 4 — prompt zbiera artefakty L2–L5 w `context/architect-report.md` (~2 strony). Podmień `{...}`; brak artefaktu → `BRAK artefaktu`, nie domysły:
+
+```text
+Zbuduj jeden sumaryczny raport architektoniczny z modułu 4 (ścieżka 10xArchitect).
+Cel: zwięzły two-pager (~2 strony), czytelny dla człowieka, oparty wyłącznie na poniższych artefaktach. Nie wymyślaj faktów - jeśli czegoś brakuje, napisz wprost "BRAK artefaktu" i nie uzupełniaj luki domysłami.
+
+Wejścia (artefakty z modułu 4):
+- Mapa repozytorium (L2): {ścieżka-do-repo-map.md}
+- Research wybranego ficzera (L3): {ścieżka-do-research.md}
+- Plan refaktoryzacji (L4): {ścieżka-do-plan.md}
+- Notatki o domenie / DDD (L5): {ścieżki-do-context/domain/*.md}
+
+Uwaga: artefakty mogą pochodzić z RÓŻNYCH projektów. Dla każdego wejścia podaj, na jakim repozytorium powstało.
+
+Struktura raportu:
+
+1. Opisane projekty
+   - Dla każdego repo użytego w module: nazwa, stack, skala (orientacyjnie), i przy którym artefakcie się pojawiło (L2/L3/L4/L5).
+
+2. Mapa projektu (z L2)
+   - 3-5 kluczowych wniosków z mapy: strefy ryzyka, lokalne centra, entry pointy, najważniejsze unknowns.
+
+3. Analiza ficzera (z L3)
+   - Który przepływ badałeś i dlaczego (link do strefy ryzyka z mapy).
+   - Feature overview w 3-4 zdaniach: skąd input, gdzie zmienia się stan, co wraca.
+   - Technical debt: 2-3 najważniejsze ryzyka (kruche sprzężenia, luki testowe, blast radius), z których co najmniej jedno potwierdzone ast-grepem.
+
+4. Plan refaktoryzacji (z L4)
+   - Co refaktoryzowane: wybrana opcja i jej docelowy kształt.
+   - Czego świadomie NIE robimy.
+   - Fazy planu w jednej linijce każda + jak weryfikowane (auto/ręcznie).
+
+5. Domena wg DDD (z L5)
+   - Ubiquitous language: 3-5 kluczowych pojęć + najważniejsze rozjazdy model-vs-kod.
+   - Niezmiennik #1 i agregat, do którego należy.
+   - Anti-Corruption Layer: która zależność przecieka i przez ile warstw.
+
+6. Decyzje, które należą do mnie
+   - 3-5 zdań: co AI podpowiedziało, a co rozstrzygnąłeś samodzielnie i dlaczego.
+
+Zasady:
+- Maksymalnie dwie strony. Tnij, nie streszczaj wszystkiego.
+- Każde twierdzenie strukturalne (liczby, "tylko tutaj") oprzyj na artefakcie, nie na własnej pamięci o kodzie.
+- Zapisz wynik jako context/architect-report.md
+```
+
+Przeczytaj jak recenzent: czy dwustronicowy dokument broni się sam, i czy sekcja „Decyzje, które należą do mnie" brzmi jak twoje decyzje.
 
 ### Deep dive: Kiedy sięgać po DDD (i czemu nie od pierwszego dnia)
 

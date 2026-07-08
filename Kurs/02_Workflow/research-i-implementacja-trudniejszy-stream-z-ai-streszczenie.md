@@ -63,10 +63,6 @@ Plan zorientowany na rozwiązanie: zamiast „jaki rating scale?" → „`Rating
 
 Trzy objawy tego samego: **błędny framing** — problem nazwany źle, research produkuje szczegóły na złe pytanie. Obserwacja ≠ przyczyna ≠ fix sklejone w jedno zgłoszenie.
 
-### Zadania praktyczne (opcjonalne)
-
-Research i framing tylko przy szczególnej złożoności slice'a — nie komplikuj planowania bez potrzeby. Ćwiczenie external: Exa MCP + Context7 MCP, świeża sesja, 2–3 kandydatów przez Exę, API zwycięzcy przez Context7 — cel: jedno zdanie „wybieramy X, bo …" z wycinkiem aktualnej dokumentacji. Ćwiczenie pełna pętla: `/10x-research <change-id> <query>` → `research.md` → `/10x-plan` z `@research.md` i docsami — porównaj `plan-brief.md` z planem „z głowy"; otwarte pytania jako jawne `Open Questions`, nie zgadywanie.
-
 ### `/10x-frame` jako koło ratunkowe
 
 Gdy: brak ekspertyzy, niepewność kierunku, poprzednie próby bez efektu. Przykład Space Explorers: „kolizje winne" — naprawiano złą warstwę. `/10x-frame` wymusza **Frame Brief**: obserwacja, zakładana przyczyna, proponowany fix — osobno, zanim plan. Trzy zasady: **nie część głównego workflow** (koło ratunkowe; MVP zwykle `research → plan → implement`), **nie zastępuje researchu** (frame = złe nazwanie problemu; czasem frame → research → plan), **nie każdy problem to misframing** (mały rozjazd w sesji vs wielokrotne niepowodzenia).

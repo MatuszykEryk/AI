@@ -42,17 +42,3 @@ Ewaluator po każdej turze sprawdza warunek zakończenia. Kontrola przesuwa się
 ### Wiele sesji w jednym widoku
 
 Cursor Agents, Antigravity, Superset, Conductor, Claude Code Agent View — ten sam wzorzec: (1) izoluj kontekst per zadanie, (2) deleguj cel, (3) recenzuj w jednym miejscu. Wybór narzędzia osobisty; wzorzec się nie zmienia.
-
-### Zadania praktyczne — pierwsza równoległa sesja
-
-Antywzorzec: zaczynać od pięciu agentów. Checklista:
-
-1. Dwa niezależne slice'y.
-2. Sprawdź wspólne pliki, kontrakty, migracje, usługi zewnętrzne.
-3. Osobny worktree + branch per slice.
-4. Osobna sesja agenta w każdym worktree.
-5. `/goal` lub interaktywne `/10x-implement` — wg zadania.
-6. Solo Code Review (M2L3) per zmiana.
-7. Osobny PR per zmiana, merge wg procesu.
-
-Efekt: kilka dobrze odizolowanych cykli, nie przekroczenie własnej przepustowości decyzyjnej i review. Moduł 3: quality gates, testy, automatyczne bramki — tu punkt startu, nie rozwiązanie.

@@ -121,6 +121,22 @@ Idempotencja: przy aktualizacji podmienia tylko blok między markerami. Uszkodzo
 
 **Manifest instalacji** — `.claude/.10x-toolkit-manifest.json` zapisuje paczkę, wersję, narzędzie i listę plików; deinstalacja usuwa dokładnie to, co dodała, niezależnie od `node_modules` i hooków menedżera pakietów.
 
+```json
+{
+  "package": "@przeprogramowani/10x-cli",
+  "version": "1.2.0",
+  "lessonId": "m1l5",
+  "tool": "claude-code",
+  "files": {
+    "skills": {
+      "10x-init": { "files": ["SKILL.md"] },
+      "10x-shape": { "files": ["references/prd-schema.md", "SKILL.md"] }
+    },
+    "configs": ["settings.json.template", "mcp.json.template"]
+  }
+}
+```
+
 **`SKILL.md` jako przenośny standard** — neutralny format; instalator (lub profile CLI) układa ten sam plik w katalog docelowy narzędzia. Zmienia się kanał dostarczania, nie treść.
 
 ### Model 3: Pełny produkt z API i CLI
@@ -165,16 +181,16 @@ Magic link → JWT ~1h, odświeżany w tle; uprawnienia sprawdzane przy każdym 
 
 ### Tabela decyzyjna i alternatywy
 
-| Wymiar | Model 1: GitHub Packages | Model 2: CodeArtifact | Model 3: API + CLI |
-| --- | --- | --- | --- |
-| Odbiorca | zespół na GitHubie | zespół na AWS | dowolny |
-| Uwierzytelnianie | PAT / GITHUB_TOKEN | IAM / OIDC | magic link + JWT |
-| Uprawnienia | członkostwo org/repo | polityka IAM | system biznesowy |
-| Odbieranie dostępu | usunięcie z org | odłączenie polityki | usunięcie z systemu |
-| Dawkowanie w czasie | nie | nie | tak |
-| Multi-tool | instalator | instalator | profile CLI |
-| Koszt uruchomienia | ~zero | ~70 linii TF + AWS | pełny produkt |
-| Koszt utrzymania | tokeny w obcym CI | rotacja tokenów, IAM | API, auth, klient |
+| Wymiar              | Model 1: GitHub Packages | Model 2: CodeArtifact | Model 3: API + CLI  |
+| ------------------- | ------------------------ | --------------------- | ------------------- |
+| Odbiorca            | zespół na GitHubie       | zespół na AWS         | dowolny             |
+| Uwierzytelnianie    | PAT / GITHUB_TOKEN       | IAM / OIDC            | magic link + JWT    |
+| Uprawnienia         | członkostwo org/repo     | polityka IAM          | system biznesowy    |
+| Odbieranie dostępu  | usunięcie z org          | odłączenie polityki   | usunięcie z systemu |
+| Dawkowanie w czasie | nie                      | nie                   | tak                 |
+| Multi-tool          | instalator               | instalator            | profile CLI         |
+| Koszt uruchomienia  | ~zero                    | ~70 linii TF + AWS    | pełny produkt       |
+| Koszt utrzymania    | tokeny w obcym CI        | rotacja tokenów, IAM  | API, auth, klient   |
 
 **Pierwszy wiersz (odbiorca) rozstrzyga wybór** — reszta doprecyzowuje. Starter paczki: `npx @przeprogramowani/10x-cli@latest get m5l4`. Ścieżka budowy: `/10x-new` → `/10x-research` → `/10x-plan` → `/10x-implement`; przy niepewności wcześniej `/10x-shape` → `/10x-prd` → `/10x-roadmap`.
 
